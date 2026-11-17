@@ -1,0 +1,1646 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iStar Modeller</title>
+<style>
+  :root {
+    --bg: #eef0f3; --panel: #ffffff; --border: #d8dce2; --text: #1f2328; --muted: #667085;
+    --accent: #2563eb; --accent-soft: #e5edff; --danger: #c2410c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; font-size: 13px; color: var(--text); background: var(--bg); }
+  #app { display: grid; grid-template-columns: 214px 1fr 300px; grid-template-rows: 46px 1fr 26px; height: 100vh; }
+  header { grid-column: 1 / 4; display: flex; align-items: center; gap: 4px; padding: 0 10px; background: var(--panel); border-bottom: 1px solid var(--border); overflow-x: auto; white-space: nowrap; }
+  header .brand { font-weight: 700; margin-right: 8px; letter-spacing: .2px; }
+  header .sep { width: 1px; height: 22px; background: var(--border); margin: 0 6px; flex: none; }
+  header input#diagramName { width: 170px; }
+  button { font: inherit; border: 1px solid var(--border); background: #fff; color: var(--text); border-radius: 6px; padding: 4px 9px; cursor: pointer; flex: none; }
+  button:hover { background: #f4f6f9; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { color: var(--danger); }
+  input, select, textarea { font: inherit; border: 1px solid var(--border); border-radius: 6px; padding: 5px 7px; width: 100%; background: #fff; color: var(--text); }
+  textarea { resize: vertical; }
+  #tools { grid-row: 2; background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 8px; }
+  #tools h4 { margin: 12px 2px 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  #tools h4:first-child { margin-top: 2px; }
+  .toolgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  #tools { overflow-x: hidden; }
+  .tool { display: flex; align-items: center; gap: 4px; padding: 4px 4px; font-size: 12px; text-align: left; min-width: 0; }
+  .tool span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tool svg { flex: none; }
+  .tool.wide { grid-column: span 2; }
+  .tool.active { background: var(--accent-soft); border-color: var(--accent); }
+  #canvasWrap { grid-row: 2; position: relative; overflow: hidden; background:
+      radial-gradient(circle, #d5d9e0 1px, transparent 1px) 0 0 / 20px 20px, #f7f8fa; }
+  #canvas { width: 100%; height: 100%; display: block; user-select: none; }
+  #canvasWrap.adding #canvas, #canvasWrap.linking #canvas { cursor: crosshair; }
+  #canvasWrap.panning #canvas { cursor: grabbing; }
+  #editor { position: absolute; display: none; z-index: 5; text-align: center; border: 2px solid var(--accent); border-radius: 4px; padding: 2px; resize: none; overflow: hidden; line-height: 1.15; background: #fff; }
+  #props { grid-row: 2; background: var(--panel); border-left: 1px solid var(--border); overflow-y: auto; padding: 12px 14px 30px; }
+  #props h3 { margin: 4px 0 10px; font-size: 15px; }
+  #props h4 { margin: 18px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+  #props label { display: block; margin: 10px 0 3px; font-size: 12px; color: var(--muted); }
+  #props .row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  #props .hint { color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .card { border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-top: 8px; }
+  .card .title { font-weight: 600; }
+  .card .meta { color: var(--muted); font-size: 12px; margin: 2px 0 4px; }
+  .card label { margin-top: 6px !important; }
+  .chip { display: inline-block; font-size: 10.5px; padding: 1px 6px; border-radius: 9px; margin-right: 4px; border: 1px solid #0002; vertical-align: 1px; }
+  .chip.goal { background: #dcf2d3; } .chip.task { background: #d5e8f8; } .chip.resource { background: #fbefcc; } .chip.quality { background: #f4dcef; } .chip.actor { background: #cfdcf2; }
+  .linkrow { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid #eef0f3; }
+  .linkrow span { flex: 1; cursor: pointer; }
+  .linkrow span:hover { color: var(--accent); }
+  .linkrow button { padding: 0 7px; }
+  ol.help { padding-left: 18px; margin: 4px 0; line-height: 1.5; color: #344054; }
+  table.keys { border-collapse: collapse; width: 100%; font-size: 12px; }
+  table.keys td { padding: 3px 4px; border-bottom: 1px solid #eef0f3; }
+  table.keys td:first-child { white-space: nowrap; color: #344054; font-family: Consolas, monospace; }
+  footer { grid-column: 1 / 4; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 12px; background: var(--panel); border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; }
+  #toast { position: fixed; left: 50%; bottom: 44px; transform: translateX(-50%); background: #1f2328; color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; max-width: 70vw; text-align: center; }
+  #toast.show { opacity: .95; }
+  #toast.err { background: #9a3412; }
+  dialog { border: 1px solid var(--border); border-radius: 10px; padding: 16px; width: min(640px, 92vw); }
+  dialog::backdrop { background: #0004; }
+  dialog textarea { height: 300px; font-family: Consolas, monospace; font-size: 12px; }
+  dialog .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="brand">iStar Modeller</span>
+    <input id="diagramName" title="Diagram name">
+    <span class="sep"></span>
+    <button id="btnNew" title="New empty diagram">New</button>
+    <button id="btnOpen" title="Open a piStar .txt/.json file (Ctrl+O)">Open…</button>
+    <button id="btnPaste" title="Paste piStar JSON">Paste JSON…</button>
+    <button id="btnExample" title="Load the example SD diagram">Example</button>
+    <span class="sep"></span>
+    <button id="btnSave" class="primary" title="Download as piStar-compatible JSON (Ctrl+S)">Save JSON</button>
+    <button id="btnSvg">SVG</button>
+    <button id="btnPng">PNG</button>
+    <span class="sep"></span>
+    <button id="btnUndo" title="Undo (Ctrl+Z)">↶ Undo</button>
+    <button id="btnRedo" title="Redo (Ctrl+Y / Ctrl+Shift+Z)">↷ Redo</button>
+    <span class="sep"></span>
+    <button id="btnExpandAll" title="Expand every actor (SR view)">Expand all</button>
+    <button id="btnCollapseAll" title="Collapse every actor (SD view)">Collapse all</button>
+    <span class="sep"></span>
+    <button id="btnZoomOut" title="Zoom out">−</button>
+    <button id="btnZoomReset" title="Reset zoom to 100%">100%</button>
+    <button id="btnZoomIn" title="Zoom in">+</button>
+    <button id="btnFit" title="Fit diagram to screen">Fit</button>
+  </header>
+
+  <aside id="tools"></aside>
+
+  <div id="canvasWrap">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+      <defs id="defs"></defs>
+      <g id="viewport"></g>
+    </svg>
+    <textarea id="editor" spellcheck="false"></textarea>
+  </div>
+
+  <aside id="props"></aside>
+
+  <footer><span id="status"></span><span id="status2"></span></footer>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="fileInput" accept=".txt,.json,application/json,text/plain" hidden>
+<dialog id="pasteDialog">
+  <h3 style="margin:0 0 8px">Paste piStar JSON</h3>
+  <textarea id="pasteText" placeholder='{"actors": [...], "dependencies": [...], "links": [...], ...}'></textarea>
+  <div class="row"><button id="pasteCancel">Cancel</button><button id="pasteOk" class="primary">Import</button></div>
+</dialog>
+
+<script>
+"use strict";
+/* =====================================================================
+   Constants
+   ===================================================================== */
+const ACTOR_TYPES = ['istar.Actor', 'istar.Agent', 'istar.Role'];
+const ELEMENT_TYPES = ['istar.Goal', 'istar.Task', 'istar.Resource', 'istar.Quality'];
+const ACTOR_D = 80;                       // actor circle diameter
+const EL_W = { 'istar.Goal': 96, 'istar.Task': 104, 'istar.Resource': 92, 'istar.Quality': 100 };  // ~piStar sizes so imported layouts fit
+const LINE_H = 14;
+const STORAGE_KEY = 'istar-modeller-v1';
+
+const LINKS = {
+  'istar.AndRefinementLink':  { name: 'AND-refinement', marker: 'm-tbar' },
+  'istar.OrRefinementLink':   { name: 'OR-refinement', marker: 'm-filled' },
+  'istar.NeededByLink':       { name: 'Needed-by', marker: 'm-dot' },
+  'istar.ContributionLink':   { name: 'Contribution', marker: 'm-arrow' },
+  'istar.QualificationLink':  { name: 'Qualification', marker: null, cls: 'qual' },
+  'istar.IsALink':            { name: 'is-a', marker: 'm-arrow', fixedLabel: 'is-a' },
+  'istar.ParticipatesInLink': { name: 'participates-in', marker: 'm-arrow', fixedLabel: 'participates-in' },
+};
+const ACTOR_LINKS = ['istar.IsALink', 'istar.ParticipatesInLink'];
+
+const STYLE = `
+.boundary{fill:#e9effa;fill-opacity:.75;stroke:#8aa4cc;stroke-width:1.5;stroke-dasharray:7 4}
+.boundary.sel{stroke:#2563eb;stroke-width:2.5}
+.boundary.candidate{fill:#dcfce7;stroke:#16a34a;stroke-width:2.5}
+.boundary.badcand{stroke:#dc2626;stroke-width:2.5}
+.node text,.lbl{font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:12px;fill:#1f2328;pointer-events:none}
+.shape{stroke:#3b4250;stroke-width:1.3}
+.deco{stroke:#3b4250;stroke-width:1.3;fill:none;pointer-events:none}
+.t-goal .shape{fill:#dcf2d3}.t-task .shape{fill:#d5e8f8}.t-resource .shape{fill:#fbefcc}.t-quality .shape{fill:#f4dcef}
+.actor .shape{fill:#cfdcf2}
+.sel .shape{stroke:#2563eb;stroke-width:2.8}
+.candidate .shape{stroke:#16a34a;stroke-width:3.2}
+.badcand .shape{stroke:#dc2626;stroke-width:3.2}
+.linksrc .shape{stroke:#f59e0b;stroke-width:3.2}
+.link .vis{stroke:#3b4250;stroke-width:1.3;fill:none}
+.link .hit{stroke:transparent;stroke-width:12;fill:none;cursor:pointer}
+.link.sel .vis{stroke:#2563eb;stroke-width:2.4}
+.link.qual .vis{stroke-dasharray:5 4}
+.dmark{fill:#fff;stroke:#3b4250;stroke-width:1.3;pointer-events:none}
+.link.sel .dmark{stroke:#2563eb;stroke-width:2}
+.lbl{font-size:11px;font-style:italic}
+.lblbg{fill:#fff;fill-opacity:.9}
+.handle{fill:#fff;stroke:#2563eb;stroke-width:2.5;cursor:grab}
+.handle:hover{fill:#2563eb}
+.vertex{fill:#2563eb;stroke:#fff;stroke-width:1.5;cursor:move}
+.vertex:hover{fill:#1d4ed8;stroke:#1d4ed8}
+.link.sel .hit{cursor:move}
+.toggle{cursor:pointer}
+.toggle circle{fill:#fff;stroke:#3b4250;stroke-width:1.2}
+.toggle path{stroke:#3b4250;stroke-width:1.6}
+.toggle:hover circle{fill:#e5edff;stroke:#2563eb}
+.temp{stroke:#2563eb;stroke-width:1.6;stroke-dasharray:5 4;fill:none;pointer-events:none}
+.box{fill:#2563eb;fill-opacity:.07;stroke:#2563eb;stroke-dasharray:4 3;pointer-events:none}
+`;
+const MARKERS = `
+<marker id="m-arrow" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path d="M1,1 L11,6 L1,11" fill="none" stroke="#3b4250" stroke-width="1.4"/></marker>
+<marker id="m-filled" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,1 L11,6 L0,11 Z" fill="#3b4250"/></marker>
+<marker id="m-tbar" viewBox="0 0 6 18" refX="5" refY="9" markerWidth="6" markerHeight="18" markerUnits="userSpaceOnUse" orient="auto"><path d="M4,0 L4,18" stroke="#3b4250" stroke-width="2.6"/></marker>
+<marker id="m-dot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><circle cx="5" cy="5" r="4" fill="#3b4250"/></marker>
+`;
+
+/* Tools shown in the left panel */
+const TOOL_GROUPS = [
+  { title: 'Select', items: [ { id: 'select', label: 'Select / move', key: 'V', wide: true, icon: 'select' } ] },
+  { title: 'Actors', items: [
+    { id: 'add-actor', label: 'Actor', kind: 'add', type: 'istar.Actor', key: 'A', icon: 'actor' },
+    { id: 'add-agent', label: 'Agent', kind: 'add', type: 'istar.Agent', icon: 'agent' },
+    { id: 'add-role', label: 'Role', kind: 'add', type: 'istar.Role', icon: 'role' } ] },
+  { title: 'Elements', items: [
+    { id: 'add-goal', label: 'Goal', kind: 'add', type: 'istar.Goal', key: 'G', icon: 'goal' },
+    { id: 'add-task', label: 'Task', kind: 'add', type: 'istar.Task', key: 'T', icon: 'task' },
+    { id: 'add-resource', label: 'Resource', kind: 'add', type: 'istar.Resource', key: 'R', icon: 'resource' },
+    { id: 'add-quality', label: 'Quality', kind: 'add', type: 'istar.Quality', key: 'Q', icon: 'quality' } ] },
+  { title: 'Dependencies', items: [
+    { id: 'dep-goal', label: 'Goal', kind: 'dep', type: 'istar.Goal', key: 'D', icon: 'goal' },
+    { id: 'dep-task', label: 'Task', kind: 'dep', type: 'istar.Task', icon: 'task' },
+    { id: 'dep-resource', label: 'Resource', kind: 'dep', type: 'istar.Resource', icon: 'resource' },
+    { id: 'dep-quality', label: 'Quality', kind: 'dep', type: 'istar.Quality', icon: 'quality' } ] },
+  { title: 'Links', items: [
+    { id: 'l-and', label: 'AND', kind: 'link', type: 'istar.AndRefinementLink', icon: 'and' },
+    { id: 'l-or', label: 'OR', kind: 'link', type: 'istar.OrRefinementLink', icon: 'or' },
+    { id: 'l-needed', label: 'Needed by', kind: 'link', type: 'istar.NeededByLink', icon: 'needed' },
+    { id: 'l-qual', label: 'Qualifies', kind: 'link', type: 'istar.QualificationLink', icon: 'qual' },
+    { id: 'l-make', label: 'Make', kind: 'link', type: 'istar.ContributionLink', linkLabel: 'make', icon: 'contrib' },
+    { id: 'l-help', label: 'Help', kind: 'link', type: 'istar.ContributionLink', linkLabel: 'help', icon: 'contrib' },
+    { id: 'l-hurt', label: 'Hurt', kind: 'link', type: 'istar.ContributionLink', linkLabel: 'hurt', icon: 'contrib' },
+    { id: 'l-break', label: 'Break', kind: 'link', type: 'istar.ContributionLink', linkLabel: 'break', icon: 'contrib' },
+    { id: 'l-isa', label: 'is-a', kind: 'link', type: 'istar.IsALink', icon: 'contrib' },
+    { id: 'l-part', label: 'part. in', kind: 'link', type: 'istar.ParticipatesInLink', icon: 'contrib' } ] },
+];
+const TOOLS = {};
+TOOL_GROUPS.forEach(g => g.items.forEach(t => TOOLS[t.id] = t));
+
+const LINK_ROLES = {
+  'istar.AndRefinementLink': ['the sub-goal/sub-task (child)', 'the parent goal/task'],
+  'istar.OrRefinementLink': ['the sub-goal/sub-task (child)', 'the parent goal/task'],
+  'istar.NeededByLink': ['the resource', 'the task that needs it'],
+  'istar.ContributionLink': ['the contributing element', 'the quality it contributes to'],
+  'istar.QualificationLink': ['the quality', 'the goal/task/resource it qualifies'],
+  'istar.IsALink': ['the specialised actor', 'the general actor'],
+  'istar.ParticipatesInLink': ['the actor', 'the actor/role it participates in'],
+};
+
+/* =====================================================================
+   State, history, persistence
+   ===================================================================== */
+let state = emptyState();
+let selection = new Set();
+let mode = TOOLS.select;
+let linkSrc = null;            // first click while creating a link/dependency
+let drag = null;               // current mouse drag
+let hoverCand = null, hoverValid = true;
+let mouseWorld = { x: 0, y: 0 };
+let view = { x: 0, y: 0, k: 1 };
+let clipboard = null;
+let spaceDown = false;
+const undoStack = [], redoStack = [];
+
+function emptyState() {
+  return { name: 'New model', description: '', diagramProps: {}, nodes: {}, links: {} };
+}
+function uid() {
+  try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+  });
+}
+const snapshot = () => JSON.stringify(state);
+function pushUndo(snap) {
+  undoStack.push(snap);
+  if (undoStack.length > 500) undoStack.shift();
+  redoStack.length = 0;
+}
+/** Run fn as one undoable step. */
+function mutate(fn) {
+  const before = snapshot();
+  const r = fn();
+  if (snapshot() !== before) { pushUndo(before); save(); }
+  render();
+  return r;
+}
+function undo() {
+  commitEditor();
+  if (!undoStack.length) return toast('Nothing to undo');
+  redoStack.push(snapshot());
+  state = JSON.parse(undoStack.pop());
+  afterHistoryJump(); toast('Undone');
+}
+function redo() {
+  commitEditor();
+  if (!redoStack.length) return toast('Nothing to redo');
+  undoStack.push(snapshot());
+  state = JSON.parse(redoStack.pop());
+  afterHistoryJump(); toast('Redone');
+}
+function afterHistoryJump() {
+  selection = new Set([...selection].filter(id => state.nodes[id] || state.links[id]));
+  linkSrc = null; save(); render();
+}
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { try { localStorage.setItem(STORAGE_KEY, snapshot()); } catch (e) {} }, 150);
+}
+
+/* =====================================================================
+   Model helpers
+   ===================================================================== */
+const N = id => state.nodes[id];
+const nodesArr = () => Object.values(state.nodes);
+const actors = () => nodesArr().filter(n => n.kind === 'actor');
+const kidsOf = aid => nodesArr().filter(n => n.kind === 'element' && n.parent === aid);
+const shortType = t => (t || '').replace('istar.', '');
+const typeCls = t => 't-' + shortType(t).toLowerCase();
+function actorOf(id) {
+  const n = N(id); if (!n) return null;
+  if (n.kind === 'actor') return id;
+  if (n.kind === 'element') return n.parent || null;
+  return null;
+}
+function isVisible(n) {
+  if (n.kind !== 'element' || !n.parent) return true;
+  const a = N(n.parent); return !a || !a.collapsed;
+}
+/** Where a link to this id should be drawn (hidden children are drawn at their actor). */
+function visEnd(id) {
+  const n = N(id); if (!n) return null;
+  if (n.kind === 'element' && n.parent && N(n.parent) && N(n.parent).collapsed) return n.parent;
+  return id;
+}
+function displayName(id) {
+  const n = N(id); if (!n) return '(missing)';
+  if (n.kind === 'element' && n.parent && N(n.parent)) return `${N(n.parent).text} › ${n.text}`;
+  return n.text || '(unnamed)';
+}
+function defaultName(t) {
+  return { 'istar.Actor': 'Actor', 'istar.Agent': 'Agent', 'istar.Role': 'Role', 'istar.Goal': 'Goal',
+           'istar.Task': 'Task', 'istar.Resource': 'Resource', 'istar.Quality': 'Quality' }[t] || 'Element';
+}
+function linkTouching(id) { return Object.values(state.links).filter(l => l.source === id || l.target === id); }
+function depsTouching(id) { return nodesArr().filter(n => n.kind === 'dependum' && (n.source === id || n.target === id)); }
+function depsOfActor(aid) {
+  return nodesArr().filter(n => n.kind === 'dependum' && (actorOf(n.source) === aid || actorOf(n.target) === aid));
+}
+
+/* ---------- Validation ---------- */
+function validDepEnd(id) {
+  const n = N(id);
+  return !!n && (n.kind === 'actor' || (n.kind === 'element' && !!n.parent));
+}
+function checkDependency(src, tgt) {
+  if (!validDepEnd(src) || !validDepEnd(tgt)) return 'A dependency must connect actors, or elements that are inside actors.';
+  if (src === tgt) return "Can't depend on itself.";
+  if (actorOf(src) === actorOf(tgt)) return 'Depender and dependee must belong to different actors.';
+  return null;
+}
+function checkLink(type, src, tgt, excludeId) {
+  const a = N(src), b = N(tgt);
+  if (!a || !b) return 'Invalid endpoint.';
+  if (src === tgt) return "Can't link an element to itself.";
+  if (Object.values(state.links).some(l => l.id !== excludeId && l.type === type && l.source === src && l.target === tgt))
+    return 'That link already exists.';
+  if (ACTOR_LINKS.includes(type)) {
+    if (a.kind !== 'actor' || b.kind !== 'actor') return `${LINKS[type].name} links connect two actors.`;
+    if (type === 'istar.IsALink' && a.type !== b.type) return 'is-a links connect actors of the same kind (role→role, actor→actor).';
+    return null;
+  }
+  if (a.kind !== 'element' || b.kind !== 'element') return `${LINKS[type].name} links connect intentional elements (not actors or dependums).`;
+  if (a.parent !== b.parent) return 'Both elements must be inside the same actor.';
+  const G = ['istar.Goal', 'istar.Task'];
+  switch (type) {
+    case 'istar.AndRefinementLink':
+    case 'istar.OrRefinementLink': {
+      if (!G.includes(a.type) || !G.includes(b.type)) return 'Refinement links connect goals and tasks only.';
+      const other = type === 'istar.AndRefinementLink' ? 'istar.OrRefinementLink' : 'istar.AndRefinementLink';
+      if (Object.values(state.links).some(l => l.id !== excludeId && l.target === tgt && l.type === other))
+        return `"${b.text}" is already ${other === 'istar.AndRefinementLink' ? 'AND' : 'OR'}-refined — iStar doesn't allow mixing AND and OR.`;
+      return null;
+    }
+    case 'istar.NeededByLink':
+      if (a.type !== 'istar.Resource' || b.type !== 'istar.Task') return 'Needed-by goes from a resource to a task.';
+      return null;
+    case 'istar.ContributionLink':
+      if (b.type !== 'istar.Quality') return 'Contribution links must point to a quality.';
+      return null;
+    case 'istar.QualificationLink':
+      if (a.type !== 'istar.Quality') return 'Qualification links start at a quality.';
+      if (b.type === 'istar.Quality') return 'Qualification links point to a goal, task or resource.';
+      return null;
+  }
+  return null;
+}
+
+/* =====================================================================
+   Geometry
+   ===================================================================== */
+const mctx = document.createElement('canvas').getContext('2d');
+mctx.font = '12px "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const wrapCache = new Map();
+function wrap(text, maxW) {
+  const key = maxW + '|' + text;
+  if (wrapCache.has(key)) return wrapCache.get(key);
+  const out = [];
+  for (const para of String(text || '').split('\n')) {
+    let line = '';
+    for (let word of para.split(/\s+/).filter(Boolean)) {
+      const test = line ? line + ' ' + word : word;
+      if (mctx.measureText(test).width <= maxW) { line = test; continue; }
+      if (line) out.push(line);
+      while (mctx.measureText(word).width > maxW && word.length > 1) {
+        let i = word.length;
+        while (i > 1 && mctx.measureText(word.slice(0, i)).width > maxW) i--;
+        out.push(word.slice(0, i)); word = word.slice(i);
+      }
+      line = word;
+    }
+    out.push(line);
+  }
+  if (wrapCache.size > 5000) wrapCache.clear();
+  wrapCache.set(key, out);
+  return out;
+}
+function elemSize(n) {
+  const w = EL_W[n.type] || 104;
+  const q = n.type === 'istar.Quality', t = n.type === 'istar.Task';
+  const lines = wrap(n.text, w - (q ? 30 : t ? 24 : 12));
+  const base = q ? 50 : 36;
+  const h = Math.max(base, lines.length * LINE_H + (q ? 24 : 10));
+  return { w, h, lines };
+}
+
+let geom = {}, bounds = {};
+function computeGeom() {
+  geom = {}; bounds = {};
+  const kids = {};
+  for (const n of nodesArr()) {
+    if (n.kind === 'actor') {
+      geom[n.id] = { x: n.x, y: n.y, w: ACTOR_D, h: ACTOR_D, cx: n.x + ACTOR_D / 2, cy: n.y + ACTOR_D / 2, r: ACTOR_D / 2, shape: 'circle', lines: wrap(n.text, 66) };
+    } else if (isVisible(n)) {
+      const s = elemSize(n);
+      geom[n.id] = { x: n.x, y: n.y, w: s.w, h: s.h, cx: n.x + s.w / 2, cy: n.y + s.h / 2, shape: 'rect', lines: s.lines };
+      if (n.kind === 'element' && n.parent) (kids[n.parent] = kids[n.parent] || []).push(n.id);
+    }
+  }
+  const PAD = 22;
+  for (const a of actors()) {
+    if (a.collapsed) continue;
+    const cx = a.x + ACTOR_D / 2, cy = a.y + ACTOR_D / 2;
+    let minX = cx, minY = cy, maxX = cx, maxY = cy;
+    const ks = kids[a.id] || [];
+    if (!ks.length) { maxX = a.x + 230; maxY = a.y + 170; }
+    for (const k of ks) {
+      const g = geom[k];
+      minX = Math.min(minX, g.x - PAD); minY = Math.min(minY, g.y - PAD);
+      maxX = Math.max(maxX, g.x + g.w + PAD); maxY = Math.max(maxY, g.y + g.h + PAD);
+    }
+    maxX = Math.max(maxX, a.x + ACTOR_D + 30); maxY = Math.max(maxY, a.y + ACTOR_D + 30);
+    bounds[a.id] = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  }
+}
+/** Point on g's outline in the direction of (tx,ty). */
+function clip(g, tx, ty) {
+  const dx = tx - g.cx, dy = ty - g.cy;
+  if (!dx && !dy) return { x: g.cx, y: g.cy };
+  if (g.shape === 'circle') { const d = Math.hypot(dx, dy); return { x: g.cx + dx / d * g.r, y: g.cy + dy / d * g.r }; }
+  const t = Math.min((g.w / 2) / Math.abs(dx || 1e-9), (g.h / 2) / Math.abs(dy || 1e-9));
+  return { x: g.cx + dx * t, y: g.cy + dy * t };
+}
+const inRect = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+const f1 = v => Math.round(v * 10) / 10;
+function cloudPath(w, h) {
+  const cx = w / 2, cy = h / 2, rx = w / 2 - 6, ry = h / 2 - 5, n = 10;
+  let d = '';
+  for (let i = 0; i <= n; i++) {
+    const a = i / n * 2 * Math.PI;
+    const x = cx + rx * Math.cos(a), y = cy + ry * Math.sin(a);
+    if (i === 0) d += `M${f1(x)},${f1(y)}`;
+    else {
+      const am = (i - 0.5) / n * 2 * Math.PI;
+      d += ` Q${f1(cx + rx * 1.28 * Math.cos(am))},${f1(cy + ry * 1.36 * Math.sin(am))} ${f1(x)},${f1(y)}`;
+    }
+  }
+  return d + 'Z';
+}
+/* ---------- Bend points (vertices) on lines ---------- */
+let routes = {};   // "<owner>|<seg>" -> { pts, a, b } from the last render; seg = 'link' | 'source' | 'target'
+function route(ga, gb, verts) {
+  const v = verts || [];
+  const first = v[0] || { x: gb.cx, y: gb.cy }, last = v[v.length - 1] || { x: ga.cx, y: ga.cy };
+  return [clip(ga, first.x, first.y), ...v.map(p => ({ x: p.x, y: p.y })), clip(gb, last.x, last.y)];
+}
+const polyD = pts => 'M' + pts.map(p => f1(p.x) + ',' + f1(p.y)).join(' L');
+function polyMid(pts) {
+  const segs = []; let total = 0;
+  for (let i = 0; i < pts.length - 1; i++) { const l = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y); segs.push(l); total += l; }
+  let half = total / 2;
+  for (let i = 0; i < segs.length; i++) {
+    if (half <= segs[i] || i === segs.length - 1) {
+      const t = segs[i] ? Math.min(1, half / segs[i]) : 0, a = pts[i], b = pts[i + 1];
+      return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, ang: Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI };
+    }
+    half -= segs[i];
+  }
+  return { x: pts[0].x, y: pts[0].y, ang: 0 };
+}
+function nearestSegment(pts, p) {
+  let best = 0, bd = Infinity;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1], dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy;
+    const t = L ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / L)) : 0;
+    const d = Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+    if (d < bd) { bd = d; best = i; }
+  }
+  return best;
+}
+/** The vertex array for a link ('link') or one half of a dependency ('source' / 'target'). */
+function getVerts(owner, seg, create) {
+  const d = N(owner);
+  if (d && d.kind === 'dependum') {
+    const k = seg === 'source' ? 'vIn' : 'vOut';
+    if (!d[k] && create) d[k] = [];
+    return d[k];
+  }
+  const l = state.links[owner]; if (!l) return null;
+  if (!l.vertices && create) l.vertices = [];
+  return l.vertices;
+}
+/** Bend points that should travel with a group of moved nodes (both ends of the line are moving). */
+function vertexArraysFor(ids) {
+  const out = [];
+  for (const l of Object.values(state.links)) if (l.vertices && l.vertices.length && ids.has(l.source) && ids.has(l.target)) out.push(l.vertices);
+  for (const d of nodesArr()) {
+    if (d.kind !== 'dependum' || !ids.has(d.id)) continue;
+    if (d.vIn && d.vIn.length && ids.has(d.source)) out.push(d.vIn);
+    if (d.vOut && d.vOut.length && ids.has(d.target)) out.push(d.vOut);
+  }
+  return out;
+}
+/** Snap a dragged bend point so its segments run straight horizontally/vertically when close. */
+function snapVertex(owner, seg, idx, p, noSnap) {
+  const pt = { x: Math.round(p.x), y: Math.round(p.y) };
+  if (noSnap) return pt;
+  const r = routes[owner + '|' + seg], verts = getVerts(owner, seg);
+  if (!r || !verts) return pt;
+  const prev = idx === 0 ? r.a : verts[idx - 1], next = idx === verts.length - 1 ? r.b : verts[idx + 1];
+  const tol = 8 / view.k;
+  for (const q of [prev, next]) {
+    if (Math.abs(pt.x - q.x) < tol) pt.x = Math.round(q.x);
+    if (Math.abs(pt.y - q.y) < tol) pt.y = Math.round(q.y);
+  }
+  return pt;
+}
+function straighten(ids) {
+  ids.forEach(id => {
+    if (state.links[id]) delete state.links[id].vertices;
+    const d = N(id); if (d && d.kind === 'dependum') { delete d.vIn; delete d.vOut; }
+  });
+}
+const bendCount = id => { const d = N(id); return d ? (d.vIn || []).length + (d.vOut || []).length : ((state.links[id] && state.links[id].vertices) || []).length; };
+
+function sceneBBox() {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const add = r => { minX = Math.min(minX, r.x); minY = Math.min(minY, r.y); maxX = Math.max(maxX, r.x + r.w); maxY = Math.max(maxY, r.y + r.h); };
+  Object.values(geom).forEach(add); Object.values(bounds).forEach(add);
+  if (minX === Infinity) return null;
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+/* =====================================================================
+   Rendering
+   ===================================================================== */
+const svg = document.getElementById('canvas');
+const vp = document.getElementById('viewport');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+document.getElementById('defs').innerHTML = `<style>${STYLE}</style>${MARKERS}`;
+
+function textSVG(lines, cx, cy) {
+  const y0 = cy - (lines.length - 1) * LINE_H / 2 + 4;
+  return `<text text-anchor="middle">${lines.map((l, i) => `<tspan x="${f1(cx)}" y="${f1(y0 + i * LINE_H)}">${esc(l)}</tspan>`).join('')}</text>`;
+}
+function shapeSVG(type, w, h) {
+  switch (type) {
+    case 'istar.Goal': return `<rect class="shape" width="${w}" height="${h}" rx="${h / 2}"/>`;
+    case 'istar.Task': return `<polygon class="shape" points="12,0 ${w - 12},0 ${w},${h / 2} ${w - 12},${h} 12,${h} 0,${h / 2}"/>`;
+    case 'istar.Quality': return `<path class="shape" d="${cloudPath(w, h)}"/>`;
+    default: return `<rect class="shape" width="${w}" height="${h}"/>`;
+  }
+}
+function actorDeco(type) {
+  if (type === 'istar.Agent') return `<line class="deco" x1="10" y1="14" x2="70" y2="14"/>`;
+  if (type === 'istar.Role') return `<path class="deco" d="M7,62 Q40,82 73,62"/>`;
+  return '';
+}
+
+function buildScene(ex) {
+  let out = '';
+  const handles = [], vhandles = [];
+  routes = {};
+  const single = !ex && selection.size === 1 ? [...selection][0] : null;
+  const cls = id => {
+    if (ex) return '';
+    let c = '';
+    if (selection.has(id)) c += ' sel';
+    if (hoverCand === id) c += hoverValid ? ' candidate' : ' badcand';
+    if (linkSrc === id) c += ' linksrc';
+    return c;
+  };
+
+  // 1. actor boundaries
+  for (const a of actors()) {
+    const b = bounds[a.id]; if (!b) continue;
+    out += `<rect class="boundary${cls(a.id)}" data-id="${a.id}" data-part="boundary" x="${f1(b.x)}" y="${f1(b.y)}" width="${f1(b.w)}" height="${f1(b.h)}" rx="22"/>`;
+  }
+
+  // 2. regular links
+  for (const l of Object.values(state.links)) {
+    const s = visEnd(l.source), t = visEnd(l.target);
+    if (!s || !t || s === t || !geom[s] || !geom[t]) continue;
+    const gs = geom[s], gt = geom[t];
+    const pts = route(gs, gt, l.vertices);
+    routes[l.id + '|link'] = { pts, a: { x: gs.cx, y: gs.cy }, b: { x: gt.cx, y: gt.cy } };
+    const meta = LINKS[l.type] || { name: shortType(l.type), marker: 'm-arrow' };
+    const label = meta.fixedLabel || (l.type === 'istar.ContributionLink' ? (l.label || 'help') : '');
+    let lbl = '';
+    if (label) {
+      const m = polyMid(pts), w = label.length * 6 + 8;
+      lbl = `<rect class="lblbg" x="${f1(m.x - w / 2)}" y="${f1(m.y - 8)}" width="${w}" height="15" rx="3"/><text class="lbl" x="${f1(m.x)}" y="${f1(m.y + 3.5)}" text-anchor="middle">${esc(label)}</text>`;
+    }
+    const pd = polyD(pts);
+    out += `<g class="link ${meta.cls || ''}${cls(l.id)}" data-link="${l.id}"><path class="hit" d="${pd}"/><path class="vis" d="${pd}"${meta.marker ? ` marker-end="url(#${meta.marker})"` : ''}/>${lbl}</g>`;
+    if (single === l.id) {
+      handles.push({ owner: l.id, end: 'source', p: pts[0] }, { owner: l.id, end: 'target', p: pts[pts.length - 1] });
+      (l.vertices || []).forEach((v, i) => vhandles.push({ owner: l.id, seg: 'link', idx: i, v }));
+    }
+  }
+
+  // 3. dependency links (depender -> dependum -> dependee)
+  for (const d of nodesArr()) {
+    if (d.kind !== 'dependum') continue;
+    const g = geom[d.id];
+    for (const end of ['source', 'target']) {
+      const o = visEnd(d[end]); const go = o && geom[o];
+      if (!go) continue;
+      const verts = end === 'source' ? d.vIn : d.vOut;
+      const a = end === 'source' ? go : g, b = end === 'source' ? g : go;
+      const pts = route(a, b, verts);
+      routes[d.id + '|' + end] = { pts, a: { x: a.cx, y: a.cy }, b: { x: b.cx, y: b.cy } };
+      const m = polyMid(pts), pd = polyD(pts);
+      out += `<g class="link dep${!ex && selection.has(d.id) ? ' sel' : ''}" data-dep="${d.id}" data-end="${end}"><path class="hit" d="${pd}"/><path class="vis" d="${pd}"/>` +
+             `<path class="dmark" transform="translate(${f1(m.x)},${f1(m.y)}) rotate(${f1(m.ang)})" d="M-4,-7 A7,7 0 0 1 -4,7 Z"/></g>`;
+      if (single === d.id) {
+        handles.push({ owner: d.id, end, p: end === 'source' ? pts[0] : pts[pts.length - 1] });
+        (verts || []).forEach((v, i) => vhandles.push({ owner: d.id, seg: end, idx: i, v }));
+      }
+    }
+  }
+
+  // 4. actor circles
+  for (const a of actors()) {
+    const g = geom[a.id];
+    const toggle = ex ? '' : `<g class="toggle" data-toggle="${a.id}" transform="translate(68,12)"><title>${a.collapsed ? 'Expand' : 'Collapse'} actor</title><circle r="8"/><path d="M-4,0 H4${a.collapsed ? ' M0,-4 V4' : ''}"/></g>`;
+    out += `<g class="node actor${cls(a.id)}" data-id="${a.id}" transform="translate(${f1(a.x)},${f1(a.y)})"><circle class="shape" cx="40" cy="40" r="40"/>${actorDeco(a.type)}${textSVG(g.lines, 40, 40)}${toggle}</g>`;
+  }
+
+  // 5. intentional elements and dependums
+  for (const n of nodesArr()) {
+    if (n.kind === 'actor') continue;
+    const g = geom[n.id]; if (!g) continue;
+    out += `<g class="node ${n.kind === 'dependum' ? 'dependum' : 'el'} ${typeCls(n.type)}${cls(n.id)}" data-id="${n.id}" transform="translate(${f1(n.x)},${f1(n.y)})">${shapeSVG(n.type, g.w, g.h)}${textSVG(g.lines, g.w / 2, g.h / 2)}</g>`;
+  }
+
+  if (ex) return out;
+
+  // 6. overlay: temp lines, rubber band, handles
+  if (drag && drag.type === 'reconnect') {
+    out += `<line class="temp" x1="${f1(drag.anchor.x)}" y1="${f1(drag.anchor.y)}" x2="${f1(mouseWorld.x)}" y2="${f1(mouseWorld.y)}"/>`;
+  }
+  if (linkSrc && geom[visEnd(linkSrc)]) {
+    const g = geom[visEnd(linkSrc)];
+    out += `<line class="temp" x1="${f1(g.cx)}" y1="${f1(g.cy)}" x2="${f1(mouseWorld.x)}" y2="${f1(mouseWorld.y)}"/>`;
+  }
+  if (drag && drag.type === 'box') {
+    const r = normRect(drag.start, drag.cur);
+    out += `<rect class="box" x="${f1(r.x)}" y="${f1(r.y)}" width="${f1(r.w)}" height="${f1(r.h)}"/>`;
+  }
+  for (const h of handles) {
+    if (drag && drag.type === 'reconnect' && drag.owner === h.owner && drag.end === h.end) continue;
+    out += `<circle class="handle" data-handle="${h.end}" data-owner="${h.owner}" cx="${f1(h.p.x)}" cy="${f1(h.p.y)}" r="7"><title>Drag onto another actor or element to reconnect</title></circle>`;
+  }
+  for (const h of vhandles) {
+    out += `<rect class="vertex" data-vowner="${h.owner}" data-vseg="${h.seg}" data-vidx="${h.idx}" x="${f1(h.v.x - 5)}" y="${f1(h.v.y - 5)}" width="10" height="10" rx="2"><title>Bend point — drag to move (Alt: no snapping), double-click to remove</title></rect>`;
+  }
+  return out;
+}
+
+function renderCanvas() {
+  computeGeom();
+  vp.innerHTML = buildScene(false);
+}
+function render() {
+  renderCanvas();
+  renderProps();
+  updateChrome();
+}
+function applyView() {
+  vp.setAttribute('transform', `translate(${view.x},${view.y}) scale(${view.k})`);
+  document.getElementById('btnZoomReset').textContent = Math.round(view.k * 100) + '%';
+}
+
+/* =====================================================================
+   Chrome: tools, status, toast
+   ===================================================================== */
+function iconSVG(kind) {
+  const S = 'stroke="#3b4250" stroke-width="1.2"';
+  const body = {
+    select: `<path d="M8,3 L8,15 L11,12 L13.5,17 L15.5,16 L13,11 L17,11 Z" fill="#3b4250"/>`,
+    actor: `<circle cx="13" cy="9" r="7" fill="#cfdcf2" ${S}/>`,
+    agent: `<circle cx="13" cy="9" r="7" fill="#cfdcf2" ${S}/><line x1="8" y1="5.5" x2="18" y2="5.5" ${S}/>`,
+    role: `<circle cx="13" cy="9" r="7" fill="#cfdcf2" ${S}/><path d="M7.5,12 Q13,16 18.5,12" fill="none" ${S}/>`,
+    goal: `<rect x="2" y="3" width="22" height="12" rx="6" fill="#dcf2d3" ${S}/>`,
+    task: `<polygon points="6,3 20,3 24,9 20,15 6,15 2,9" fill="#d5e8f8" ${S}/>`,
+    resource: `<rect x="3" y="3" width="20" height="12" fill="#fbefcc" ${S}/>`,
+    quality: `<path transform="translate(2,1)" d="${cloudPath(22, 16)}" fill="#f4dcef" ${S}/>`,
+    and: `<line x1="3" y1="15" x2="21" y2="4" ${S}/><line x1="19" y1="1" x2="23" y2="7.5" stroke="#3b4250" stroke-width="2"/>`,
+    or: `<line x1="3" y1="15" x2="19" y2="5" ${S}/><path d="M23,3 L17,3.5 L20,8 Z" fill="#3b4250"/>`,
+    needed: `<line x1="3" y1="15" x2="20" y2="5" ${S}/><circle cx="21" cy="4.5" r="2.6" fill="#3b4250"/>`,
+    qual: `<line x1="3" y1="15" x2="23" y2="3" ${S} stroke-dasharray="3 2"/>`,
+    contrib: `<line x1="3" y1="15" x2="22" y2="4" ${S}/><path d="M17,3 L22.5,3.8 L20,8.5" fill="none" ${S}/>`,
+  }[kind] || '';
+  return `<svg width="26" height="18" viewBox="0 0 26 18">${body}</svg>`;
+}
+function buildTools() {
+  const el = document.getElementById('tools');
+  el.innerHTML = TOOL_GROUPS.map(g => `<h4>${g.title}</h4><div class="toolgrid">${g.items.map(t =>
+    `<button class="tool${t.wide ? ' wide' : ''}" data-tool="${t.id}" title="${esc(t.label)}${t.key ? ' (' + t.key + ')' : ''}">${iconSVG(t.icon)}<span>${esc(t.label)}</span></button>`
+  ).join('')}</div>`).join('') +
+  `<p class="hint" style="color:var(--muted);font-size:11.5px;line-height:1.45;margin-top:14px">Hold <b>Shift</b> while placing to keep the tool active. <b>Esc</b> returns to Select.</p>`;
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-tool]'); if (b) setTool(b.dataset.tool);
+  });
+}
+function setTool(id) {
+  commitEditor();
+  mode = TOOLS[id] || TOOLS.select;
+  linkSrc = null;
+  document.querySelectorAll('.tool').forEach(b => b.classList.toggle('active', b.dataset.tool === mode.id));
+  const wrapEl = document.getElementById('canvasWrap');
+  wrapEl.classList.toggle('adding', mode.kind === 'add');
+  wrapEl.classList.toggle('linking', mode.kind === 'link' || mode.kind === 'dep');
+  render();
+}
+function updateChrome() {
+  const st = document.getElementById('status');
+  let msg;
+  if (mode.kind === 'add') msg = `Click to place a ${shortType(mode.type)}. Click inside an expanded actor's boundary to put it inside that actor.`;
+  else if (mode.kind === 'dep') msg = linkSrc ? `Now click the DEPENDEE (who provides the ${shortType(mode.type).toLowerCase()}). Esc to cancel.` : `Click the DEPENDER (who needs it) — an actor or an element inside an actor.`;
+  else if (mode.kind === 'link') { const r = LINK_ROLES[mode.type]; msg = linkSrc ? `Now click ${r[1]}. Esc to cancel.` : `Click ${r[0]}.`; }
+  else if (drag && drag.type === 'reconnect') msg = 'Drop on an actor or an element inside an actor to reconnect.';
+  else msg = 'Click to select · drag to move · drag a line to bend it · drag empty space to pan · Shift+drag to box-select · scroll to zoom · double-click to rename';
+  st.textContent = msg;
+  const c = { a: 0, e: 0, d: 0, l: Object.keys(state.links).length };
+  nodesArr().forEach(n => n.kind === 'actor' ? c.a++ : n.kind === 'dependum' ? c.d++ : c.e++);
+  document.getElementById('status2').textContent = `${c.a} actors · ${c.e} elements · ${c.d} dependencies · ${c.l} links   |   undo: ${undoStack.length}`;
+  document.getElementById('btnUndo').disabled = !undoStack.length;
+  document.getElementById('btnRedo').disabled = !redoStack.length;
+  const nameEl = document.getElementById('diagramName');
+  if (document.activeElement !== nameEl) nameEl.value = state.name;
+}
+let toastTimer = null;
+function toast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show' + (isErr ? ' err' : '');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = '', isErr ? 3200 : 1600);
+}
+
+/* =====================================================================
+   Properties panel
+   ===================================================================== */
+const P = document.getElementById('props');
+
+/** Live-editing text field: updates the canvas while typing, one undo step per edit. */
+function bindText(el, get, set) {
+  if (!el) return;
+  el.value = get();
+  let pre = null;
+  el.addEventListener('focus', () => { pre = snapshot(); });
+  el.addEventListener('input', () => { set(el.value); renderCanvas(); });
+  el.addEventListener('change', () => {
+    if (pre !== null && snapshot() !== pre) { pushUndo(pre); save(); updateChrome(); }
+    pre = snapshot();
+  });
+}
+function endpointOptions(selectedId, includeElements = true) {
+  let h = selectedId && !N(selectedId) ? `<option value="" selected>(missing)</option>` : '';
+  for (const a of actors()) {
+    h += `<optgroup label="${esc(a.text)}"><option value="${a.id}"${a.id === selectedId ? ' selected' : ''}>◯ ${esc(a.text)} (whole actor)</option>`;
+    if (includeElements) for (const k of kidsOf(a.id))
+      h += `<option value="${k.id}"${k.id === selectedId ? ' selected' : ''}>&nbsp;&nbsp;&nbsp;${shortType(k.type)}: ${esc(k.text)}</option>`;
+    h += `</optgroup>`;
+  }
+  return h;
+}
+function attachOptions(aid, selectedId) {
+  const a = N(aid);
+  let h = `<option value="${aid}"${aid === selectedId ? ' selected' : ''}>◯ ${esc(a.text)} (whole actor)</option>`;
+  for (const k of kidsOf(aid))
+    h += `<option value="${k.id}"${k.id === selectedId ? ' selected' : ''}>${shortType(k.type)}: ${esc(k.text)}</option>`;
+  return h;
+}
+const chip = t => `<span class="chip ${shortType(t).toLowerCase()}">${shortType(t)}</span>`;
+
+function setDepEnd(did, end, val) {
+  const d = N(did); if (!d || !val) return render();
+  const src = end === 'source' ? val : d.source, tgt = end === 'target' ? val : d.target;
+  const err = checkDependency(src, tgt);
+  if (err) { toast(err, true); return render(); }
+  mutate(() => { d[end] = val; });
+}
+
+function renderProps() {
+  if (P.contains(document.activeElement) && document.activeElement.matches('input,textarea')) {
+    // don't rebuild under the user's cursor; it will refresh on the next selection change
+    if (P.dataset.for === [...selection].join(',')) return;
+  }
+  P.dataset.for = [...selection].join(',');
+  const ids = [...selection];
+  if (!ids.length) return diagramProps();
+  if (ids.length > 1) {
+    P.innerHTML = `<h3>${ids.length} items selected</h3><p class="hint">Drag any of them to move them together. Ctrl+C / Ctrl+V to duplicate.</p>
+      <div class="row"><button id="pStraight">Straighten selected lines</button><button class="danger" id="pDel">Delete selected</button></div>`;
+    P.querySelector('#pDel').onclick = () => deleteSelection();
+    P.querySelector('#pStraight').onclick = () => mutate(() => straighten(ids));
+    return;
+  }
+  const id = ids[0];
+  if (N(id)) return nodeProps(N(id));
+  if (state.links[id]) return linkProps(state.links[id]);
+  diagramProps();
+}
+
+function diagramProps() {
+  P.innerHTML = `
+    <h3>Diagram</h3>
+    <label>Name</label><input id="pName">
+    <label>Description</label><textarea id="pDesc" rows="3"></textarea>
+    <h4>Turning an SD diagram into an SR diagram</h4>
+    <ol class="help">
+      <li>Click the <b>+</b> on an actor's circle (or <b>Expand all</b>) to open its boundary.</li>
+      <li>Pick Goal / Task / Resource / Quality and click inside the boundary to add internal elements.</li>
+      <li>Click a dependency line (or its dependum). Blue handles appear on its ends — <b>drag a handle onto an internal element</b> to move that end. No deleting needed.</li>
+      <li>Or select an actor: its <b>Dependencies</b> list lets you re-attach every dependency from a dropdown.</li>
+    </ol>
+    <h4>Untangling lines</h4>
+    <ol class="help">
+      <li><b>Drag any line</b> to add a bend point and route it around things.</li>
+      <li>Click a line to see its square bend points — drag to move them (they snap straight; hold <b>Alt</b> to stop snapping), <b>double-click</b> one to remove it.</li>
+      <li>Moving a group of elements together carries the bend points between them along.</li>
+    </ol>
+    <h4>Shortcuts</h4>
+    <table class="keys">
+      <tr><td>Ctrl+Z / Ctrl+Y</td><td>Undo / redo (Ctrl+Shift+Z also redoes)</td></tr>
+      <tr><td>Delete</td><td>Delete selection</td></tr>
+      <tr><td>F2 / Enter</td><td>Rename selected element</td></tr>
+      <tr><td>Ctrl+C / Ctrl+V</td><td>Copy / paste (actors bring their elements)</td></tr>
+      <tr><td>Ctrl+A</td><td>Select all</td></tr>
+      <tr><td>Arrow keys</td><td>Nudge (Shift = 10px)</td></tr>
+      <tr><td>Ctrl+S / Ctrl+O</td><td>Save / open file</td></tr>
+      <tr><td>V A G T R Q D</td><td>Select, Actor, Goal, Task, Resource, Quality, Dependency</td></tr>
+      <tr><td>Esc</td><td>Cancel tool / clear selection</td></tr>
+      <tr><td>Space+drag</td><td>Pan (or drag empty space)</td></tr>
+    </table>
+    <p class="hint" style="margin-top:12px">Your work is autosaved in this browser. Use <b>Save JSON</b> to get a file that also opens in piStar.</p>`;
+  bindText(P.querySelector('#pName'), () => state.name, v => { state.name = v; document.getElementById('diagramName').value = v; });
+  bindText(P.querySelector('#pDesc'), () => state.description, v => { state.description = v; });
+}
+
+function nodeProps(n) {
+  const id = n.id;
+  const isActor = n.kind === 'actor', isDep = n.kind === 'dependum';
+  const types = isActor ? ACTOR_TYPES : ELEMENT_TYPES;
+  const kindLabel = isActor ? shortType(n.type) : isDep ? `${shortType(n.type)} dependency` : shortType(n.type);
+  let h = `<h3>${esc(kindLabel)}</h3>
+    <label>Name</label><textarea id="pText" rows="2"></textarea>
+    <label>Type</label><select id="pType">${types.map(t => `<option value="${t}"${t === n.type ? ' selected' : ''}>${shortType(t)}</option>`).join('')}</select>`;
+
+  if (isDep) {
+    h += `<label>Depender (who needs it)</label><select id="pSrc">${endpointOptions(n.source)}</select>
+      <label>Dependee (who provides it)</label><select id="pTgt">${endpointOptions(n.target)}</select>
+      <div class="row"><button id="pSwap">⇄ Swap direction</button>${bendCount(id) ? `<button id="pStraight">Straighten lines (${bendCount(id)})</button>` : ''}</div>
+      <p class="hint">Tip: drag the round handles at the ends onto any actor or internal element to reconnect. Drag a line itself to add a bend point; double-click a square bend point to remove it.</p>`;
+  }
+
+  if (isActor) {
+    h += `<div class="row"><button id="pCollapse">${n.collapsed ? '⊕ Expand actor' : '⊖ Collapse actor'}</button></div>`;
+    const deps = depsOfActor(id);
+    h += `<h4>Dependencies (${deps.length})</h4>`;
+    if (!deps.length) h += `<p class="hint">None yet.</p>`;
+    else {
+      if (!kidsOf(id).length) h += `<p class="hint">Add internal elements to this actor, then attach these dependencies to them here.</p>`;
+      for (const d of deps) {
+        const end = actorOf(d.source) === id ? 'source' : 'target';
+        const other = end === 'source' ? d.target : d.source;
+        const otherName = N(actorOf(other)) ? N(actorOf(other)).text : '?';
+        h += `<div class="card"><div class="title">${chip(d.type)}${esc(d.text)}</div>
+          <div class="meta">${end === 'source' ? `${esc(n.text)} depends on ${esc(otherName)}` : `${esc(otherName)} depends on ${esc(n.text)}`}</div>
+          <label>Attached at ${end === 'source' ? '(depender side)' : '(dependee side)'}</label>
+          <select data-dep="${d.id}" data-end="${end}">${attachOptions(id, d[end])}</select></div>`;
+      }
+    }
+  }
+
+  if (n.kind === 'element') {
+    h += `<label>Belongs to actor</label><select id="pParent"><option value="">(none — outside any actor)</option>${actors().map(a => `<option value="${a.id}"${a.id === n.parent ? ' selected' : ''}>${esc(a.text)}</option>`).join('')}</select>`;
+    const ls = linkTouching(id), ds = depsTouching(id);
+    if (ls.length) {
+      h += `<h4>Links</h4>` + ls.map(l => {
+        const out = l.source === id;
+        const name = (LINKS[l.type] || {}).name || shortType(l.type);
+        return `<div class="linkrow"><span data-sel="${l.id}">${out ? '→' : '←'} ${esc(name)}${l.label ? ' (' + esc(l.label) + ')' : ''}: ${esc(N(out ? l.target : l.source)?.text)}</span><button data-dellink="${l.id}" title="Delete link">×</button></div>`;
+      }).join('');
+    }
+    if (ds.length) {
+      h += `<h4>Dependencies attached here</h4>` + ds.map(d =>
+        `<div class="linkrow"><span data-sel="${d.id}">${chip(d.type)}${esc(d.text)} ${d.source === id ? '(needs from ' + esc(displayName(d.target)) + ')' : '(provides to ' + esc(displayName(d.source)) + ')'}</span></div>`).join('');
+    }
+  }
+
+  h += `<label>Description</label><textarea id="pDesc" rows="3"></textarea>
+    <div class="row"><button class="danger" id="pDel">Delete</button></div>`;
+  P.innerHTML = h;
+
+  bindText(P.querySelector('#pText'), () => N(id) ? N(id).text : '', v => { if (N(id)) N(id).text = v; });
+  bindText(P.querySelector('#pDesc'), () => (N(id) && N(id).props && N(id).props.Description) || '', v => { if (N(id)) { N(id).props = N(id).props || {}; N(id).props.Description = v; } });
+  P.querySelector('#pType').onchange = e => mutate(() => { N(id).type = e.target.value; });
+  P.querySelector('#pDel').onclick = () => deleteSelection();
+
+  if (isDep) {
+    P.querySelector('#pSrc').onchange = e => setDepEnd(id, 'source', e.target.value);
+    P.querySelector('#pTgt').onchange = e => setDepEnd(id, 'target', e.target.value);
+    P.querySelector('#pSwap').onclick = () => mutate(() => { const d = N(id); [d.source, d.target] = [d.target, d.source]; [d.vIn, d.vOut] = [d.vOut ? d.vOut.slice().reverse() : undefined, d.vIn ? d.vIn.slice().reverse() : undefined]; });
+    const ps = P.querySelector('#pStraight'); if (ps) ps.onclick = () => mutate(() => straighten([id]));
+  }
+  if (isActor) {
+    P.querySelector('#pCollapse').onclick = () => mutate(() => { N(id).collapsed = !N(id).collapsed; });
+    P.querySelectorAll('select[data-dep]').forEach(s => s.onchange = () => setDepEnd(s.dataset.dep, s.dataset.end, s.value));
+  }
+  if (n.kind === 'element') {
+    P.querySelector('#pParent').onchange = e => setParent(id, e.target.value || null);
+    P.querySelectorAll('[data-sel]').forEach(s => s.onclick = () => { selection = new Set([s.dataset.sel]); render(); });
+    P.querySelectorAll('[data-dellink]').forEach(b => b.onclick = () => mutate(() => { delete state.links[b.dataset.dellink]; }));
+  }
+}
+
+function linkProps(l) {
+  const meta = LINKS[l.type] || { name: shortType(l.type) };
+  const isRef = l.type === 'istar.AndRefinementLink' || l.type === 'istar.OrRefinementLink';
+  let h = `<h3>${esc(meta.name)} link</h3>
+    <label>From</label><div>${esc(displayName(l.source))}</div>
+    <label>To</label><div>${esc(displayName(l.target))}</div>`;
+  if (isRef) h += `<label>Refinement type</label><select id="pLType"><option value="istar.AndRefinementLink"${l.type === 'istar.AndRefinementLink' ? ' selected' : ''}>AND</option><option value="istar.OrRefinementLink"${l.type === 'istar.OrRefinementLink' ? ' selected' : ''}>OR</option></select>`;
+  if (l.type === 'istar.ContributionLink') h += `<label>Contribution</label><select id="pLabel">${['make', 'help', 'hurt', 'break'].map(v => `<option${(l.label || 'help') === v ? ' selected' : ''}>${v}</option>`).join('')}</select>`;
+  h += `<p class="hint" style="margin-top:12px">Drag the round handles at either end to reconnect this link. Drag the line itself to add a bend point; double-click a square bend point to remove it.</p>
+    <div class="row"><button id="pRev">⇄ Reverse</button>${bendCount(l.id) ? `<button id="pStraight">Straighten (${bendCount(l.id)})</button>` : ''}<button class="danger" id="pDel">Delete</button></div>`;
+  P.innerHTML = h;
+  const id = l.id;
+  if (isRef) P.querySelector('#pLType').onchange = e => {
+    const lk = state.links[id]; const err = checkLink(e.target.value, lk.source, lk.target, id);
+    if (err) { toast(err, true); return render(); }
+    mutate(() => { lk.type = e.target.value; });
+  };
+  if (l.type === 'istar.ContributionLink') P.querySelector('#pLabel').onchange = e => mutate(() => { state.links[id].label = e.target.value; });
+  P.querySelector('#pRev').onclick = () => {
+    const lk = state.links[id]; const err = checkLink(lk.type, lk.target, lk.source, id);
+    if (err) return toast(err, true);
+    mutate(() => { [lk.source, lk.target] = [lk.target, lk.source]; if (lk.vertices) lk.vertices.reverse(); });
+  };
+  const ps = P.querySelector('#pStraight'); if (ps) ps.onclick = () => mutate(() => straighten([id]));
+  P.querySelector('#pDel').onclick = () => deleteSelection();
+}
+
+/* =====================================================================
+   Editing operations
+   ===================================================================== */
+function setParent(id, parent) {
+  mutate(() => {
+    const n = N(id); if (!n) return;
+    n.parent = parent;
+    if (parent) {
+      const a = N(parent); a.collapsed = false;
+      const b = bounds[parent];
+      const s = elemSize(n);
+      if (b && !inRect({ x: n.x + s.w / 2, y: n.y + s.h / 2 }, b)) { n.x = Math.round(b.x + 24); n.y = Math.round(b.y + b.h + 6); }
+      else if (!b) { n.x = a.x + 100; n.y = a.y + 60; }
+    }
+    let removed = 0;
+    for (const l of linkTouching(id)) {
+      if (ACTOR_LINKS.includes(l.type)) continue;
+      const o = N(l.source === id ? l.target : l.source);
+      if (!o || o.parent !== parent) { delete state.links[l.id]; removed++; }
+    }
+    if (removed) setTimeout(() => toast(`Removed ${removed} link(s) that would cross actor boundaries.`), 0);
+  });
+}
+
+function deleteIds(ids) {
+  const del = new Set();
+  ids.forEach(id => {
+    if (state.links[id]) { delete state.links[id]; return; }
+    const n = N(id); if (!n) return;
+    del.add(id);
+    if (n.kind === 'actor') kidsOf(id).forEach(k => del.add(k.id));
+  });
+  for (const l of Object.values(state.links)) if (del.has(l.source) || del.has(l.target)) delete state.links[l.id];
+  // dependencies: if an internal element goes away, fall back to its actor; if the actor goes, drop the dependency
+  for (const d of nodesArr()) {
+    if (d.kind !== 'dependum' || del.has(d.id)) continue;
+    for (const end of ['source', 'target']) {
+      if (!del.has(d[end])) continue;
+      const n = N(d[end]);
+      if (n && n.kind === 'element' && n.parent && !del.has(n.parent)) d[end] = n.parent;
+      else del.add(d.id);
+    }
+  }
+  del.forEach(id => delete state.nodes[id]);
+}
+function deleteSelection() {
+  if (!selection.size) return;
+  mutate(() => deleteIds([...selection]));
+  selection.clear(); render();
+}
+
+function addNodeAt(p, type) {
+  const id = uid();
+  if (ACTOR_TYPES.includes(type)) {
+    state.nodes[id] = { id, kind: 'actor', type, text: defaultName(type), x: Math.round(p.x - 40), y: Math.round(p.y - 40), props: { Description: '' }, collapsed: false };
+  } else {
+    const parent = actorBoundaryAt(p);
+    const n = { id, kind: 'element', type, text: defaultName(type), x: 0, y: 0, props: { Description: '' }, parent };
+    const s = elemSize(n);
+    n.x = Math.round(p.x - s.w / 2); n.y = Math.round(p.y - s.h / 2);
+    state.nodes[id] = n;
+  }
+  return id;
+}
+function actorBoundaryAt(p) {
+  let best = null, area = Infinity;
+  for (const [aid, b] of Object.entries(bounds)) if (inRect(p, b) && b.w * b.h < area) { area = b.w * b.h; best = aid; }
+  return best;
+}
+function addDependum(src, tgt, type) {
+  const id = uid();
+  const a = geom[visEnd(src)], b = geom[visEnd(tgt)];
+  const n = { id, kind: 'dependum', type, text: 'New ' + shortType(type).toLowerCase(), x: 0, y: 0, props: { Description: '' }, source: src, target: tgt, linkIn: uid(), linkOut: uid() };
+  const s = elemSize(n);
+  n.x = Math.round((a.cx + b.cx) / 2 - s.w / 2); n.y = Math.round((a.cy + b.cy) / 2 - s.h / 2);
+  state.nodes[id] = n;
+  return id;
+}
+function addLink(type, src, tgt, label) {
+  const id = uid();
+  state.links[id] = { id, type, source: src, target: tgt };
+  if (type === 'istar.ContributionLink') state.links[id].label = label || 'help';
+  return id;
+}
+function setAllCollapsed(c) { mutate(() => actors().forEach(a => a.collapsed = c)); }
+
+function copySelection() {
+  const ids = new Set();
+  selection.forEach(id => { const n = N(id); if (!n) return; ids.add(id); if (n.kind === 'actor') kidsOf(id).forEach(k => ids.add(k.id)); });
+  if (!ids.size) return;
+  clipboard = {
+    nodes: [...ids].map(id => JSON.parse(JSON.stringify(N(id)))),
+    links: Object.values(state.links).filter(l => ids.has(l.source) && ids.has(l.target)).map(l => JSON.parse(JSON.stringify(l))),
+  };
+  toast(`Copied ${ids.size} item(s)`);
+}
+function pasteClipboard() {
+  if (!clipboard) return;
+  const map = {};
+  clipboard.nodes.forEach(n => map[n.id] = uid());
+  const shift = arr => (arr || []).forEach(v => { v.x += 30; v.y += 30; });
+  clipboard.nodes.forEach(n => { n.x += 30; n.y += 30; shift(n.vIn); shift(n.vOut); });
+  clipboard.links.forEach(l => shift(l.vertices));
+  mutate(() => {
+    for (const n of clipboard.nodes) {
+      const c = JSON.parse(JSON.stringify(n)); c.id = map[n.id];
+      if (c.parent) c.parent = map[c.parent] || (N(c.parent) ? c.parent : null);
+      if (c.kind === 'dependum') { c.source = map[c.source] || c.source; c.target = map[c.target] || c.target; c.linkIn = uid(); c.linkOut = uid(); }
+      state.nodes[c.id] = c;
+    }
+    for (const l of clipboard.links) { const id = uid(); state.links[id] = { ...JSON.parse(JSON.stringify(l)), id, source: map[l.source], target: map[l.target] }; }
+  });
+  selection = new Set(clipboard.nodes.filter(n => !(n.parent && map[n.parent])).map(n => map[n.id]));
+  render();
+}
+
+/* =====================================================================
+   Inline text editor
+   ===================================================================== */
+const editor = document.getElementById('editor');
+let editing = null;
+function editText(id) {
+  commitEditor();
+  renderCanvas();
+  const n = N(id), g = geom[id]; if (!n || !g) return;
+  const box = n.kind === 'actor' ? { x: g.x + 2, y: g.y + 18, w: 76, h: 44 } : { x: g.x, y: g.y, w: g.w, h: g.h };
+  Object.assign(editor.style, {
+    display: 'block', left: (view.x + box.x * view.k) + 'px', top: (view.y + box.y * view.k) + 'px',
+    width: Math.max(80, box.w * view.k) + 'px', height: Math.max(30, box.h * view.k) + 'px',
+    fontSize: Math.max(11, 12 * view.k) + 'px',
+  });
+  editor.value = n.text;
+  editing = id;
+  editor.focus(); editor.select();
+}
+function commitEditor(cancel) {
+  if (!editing) return;
+  const id = editing, val = editor.value.trim();
+  editing = null; editor.style.display = 'none';
+  if (!cancel && N(id) && val && val !== N(id).text) mutate(() => { N(id).text = val; });
+  else render();
+}
+editor.addEventListener('keydown', e => {
+  e.stopPropagation();
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEditor(); }
+  else if (e.key === 'Escape') { e.preventDefault(); commitEditor(true); }
+});
+editor.addEventListener('blur', () => commitEditor());
+
+/* =====================================================================
+   Mouse interaction
+   ===================================================================== */
+function toWorld(e) {
+  const r = svg.getBoundingClientRect();
+  return { x: (e.clientX - r.left - view.x) / view.k, y: (e.clientY - r.top - view.y) / view.k };
+}
+function normRect(a, b) { return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) }; }
+/** Geometric hit test for dropping a link end: internal element > actor circle > actor boundary. */
+function candidateAt(p) {
+  const ns = nodesArr();
+  for (let i = ns.length - 1; i >= 0; i--) { const n = ns[i]; if (n.kind === 'element' && geom[n.id] && inRect(p, geom[n.id])) return n.id; }
+  for (const a of actors()) { const g = geom[a.id]; if (Math.hypot(p.x - g.cx, p.y - g.cy) <= g.r) return a.id; }
+  return actorBoundaryAt(p);
+}
+function reconnectError(owner, end, cand) {
+  const d = N(owner);
+  if (d && d.kind === 'dependum') {
+    return checkDependency(end === 'source' ? cand : d.source, end === 'target' ? cand : d.target);
+  }
+  const l = state.links[owner]; if (!l) return 'Invalid';
+  return checkLink(l.type, end === 'source' ? cand : l.source, end === 'target' ? cand : l.target, l.id);
+}
+function blurPanelInput() {
+  const a = document.activeElement;
+  if (a && a !== editor && a.matches && a.matches('input,textarea,select')) a.blur();
+}
+
+svg.addEventListener('mousedown', e => {
+  blurPanelInput();
+  if (editing) commitEditor();
+  e.preventDefault();   // keep focus where we put it (e.g. the rename box opened by this click)
+  const p = toWorld(e);
+  mouseWorld = p;
+  if (e.button === 1 || (e.button === 0 && spaceDown)) {
+    e.preventDefault();
+    drag = { type: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: true };
+    document.getElementById('canvasWrap').classList.add('panning');
+    return;
+  }
+  if (e.button !== 0) return;
+  const t = e.target;
+
+  // collapse/expand toggle
+  const tog = t.closest('[data-toggle]');
+  if (tog && mode.kind !== 'link' && mode.kind !== 'dep') {
+    const id = tog.dataset.toggle;
+    mutate(() => { N(id).collapsed = !N(id).collapsed; });
+    return;
+  }
+
+  if (mode.kind === 'add') {
+    let id;
+    mutate(() => { id = addNodeAt(p, mode.type); });
+    selection = new Set([id]);
+    if (!e.shiftKey) setTool('select'); else render();
+    editText(id);
+    return;
+  }
+
+  if (mode.kind === 'link' || mode.kind === 'dep') {
+    const hit = t.closest('[data-id]');
+    handleLinkClick(hit ? hit.dataset.id : null, e);
+    return;
+  }
+
+  // --- select mode ---
+  // Our own double-click detection: the canvas re-renders between clicks, which stops the browser's dblclick firing.
+  const key = dblKey(t), now = performance.now();
+  if (key && lastDown && key === lastDown.key && now - lastDown.t < 450 && Math.hypot(e.clientX - lastDown.x, e.clientY - lastDown.y) < 6) {
+    lastDown = null;
+    handleDoubleClick(t);
+    return;
+  }
+  lastDown = { key, t: now, x: e.clientX, y: e.clientY };
+
+  const vh = t.closest('[data-vidx]');
+  if (vh) {
+    drag = { type: 'vertex', owner: vh.dataset.vowner, seg: vh.dataset.vseg, idx: +vh.dataset.vidx, pre: snapshot(), moved: false, start: p };
+    return;
+  }
+  const h = t.closest('[data-handle]');
+  if (h) {
+    const owner = h.dataset.owner, end = h.dataset.handle;
+    let anchor;
+    const d = N(owner);
+    const seg = d && d.kind === 'dependum' ? end : 'link';
+    const vs = getVerts(owner, seg) || [];
+    const near = end === 'source' ? vs[0] : vs[vs.length - 1];
+    if (near) anchor = { x: near.x, y: near.y };
+    else if (d && d.kind === 'dependum') anchor = { x: geom[d.id].cx, y: geom[d.id].cy };
+    else { const l = state.links[owner]; const g = geom[visEnd(end === 'source' ? l.target : l.source)]; anchor = { x: g.cx, y: g.cy }; }
+    drag = { type: 'reconnect', owner, end, anchor, pre: snapshot() };
+    updateChrome();
+    return;
+  }
+  const nodeEl = t.closest('[data-id]');
+  if (nodeEl) {
+    const id = nodeEl.dataset.id;
+    if (e.shiftKey || e.ctrlKey || e.metaKey) {
+      if (selection.has(id)) { selection.delete(id); render(); return; }
+      selection.add(id);
+    } else if (!selection.has(id)) selection = new Set([id]);
+    startMove(p);
+    render();
+    return;
+  }
+  const linkEl = t.closest('[data-link]') || t.closest('[data-dep]');
+  if (linkEl) {
+    const id = linkEl.dataset.link || linkEl.dataset.dep;
+    if (e.shiftKey || e.ctrlKey) { selection.has(id) ? selection.delete(id) : selection.add(id); render(); return; }
+    selection = new Set([id]);
+    // dragging the line (rather than clicking it) creates a bend point
+    drag = { type: 'bend', owner: id, seg: linkEl.dataset.dep ? linkEl.dataset.end : 'link', start: p, pre: snapshot() };
+    render();
+    return;
+  }
+  // empty canvas
+  if (e.shiftKey) drag = { type: 'box', start: p, cur: p };
+  else drag = { type: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: false };
+});
+
+function startMove(p) {
+  const ids = new Set();
+  selection.forEach(id => {
+    const n = N(id); if (!n) return;
+    ids.add(id);
+    if (n.kind === 'actor') kidsOf(id).forEach(k => ids.add(k.id));
+  });
+  const orig = {};
+  ids.forEach(id => orig[id] = { x: N(id).x, y: N(id).y });
+  const vorig = vertexArraysFor(ids).map(arr => ({ arr, orig: arr.map(v => ({ ...v })) }));
+  drag = { type: 'move', start: p, orig, vorig, pre: snapshot(), moved: false };
+}
+
+function handleLinkClick(id, e) {
+  if (!id) { linkSrc = null; render(); return; }
+  if (!linkSrc) {
+    if (mode.kind === 'dep' && !validDepEnd(id)) return toast('Pick an actor, or an element that is inside an actor.', true);
+    linkSrc = id; render(); return;
+  }
+  if (id === linkSrc) return;
+  const err = mode.kind === 'dep' ? checkDependency(linkSrc, id) : checkLink(mode.type, linkSrc, id);
+  if (err) return toast(err, true);
+  const src = linkSrc;
+  let newId;
+  linkSrc = null;
+  mutate(() => { newId = mode.kind === 'dep' ? addDependum(src, id, mode.type) : addLink(mode.type, src, id, mode.linkLabel); });
+  selection = new Set([newId]);
+  const wasDep = mode.kind === 'dep';
+  if (!e.shiftKey) setTool('select'); else render();
+  if (wasDep) editText(newId);
+}
+
+window.addEventListener('mousemove', e => {
+  const p = toWorld(e);
+  mouseWorld = p;
+  if (!drag) {
+    if (linkSrc) renderCanvas();
+    return;
+  }
+  if (drag.type === 'pan') {
+    const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if (!drag.moved && Math.hypot(dx, dy) < 3) return;
+    if (!drag.moved) document.getElementById('canvasWrap').classList.add('panning');
+    drag.moved = true;
+    view.x = drag.vx + dx; view.y = drag.vy + dy; applyView();
+  } else if (drag.type === 'move') {
+    const dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+    if (!drag.moved && Math.hypot(dx, dy) * view.k < 3) return;
+    drag.moved = true;
+    for (const [id, o] of Object.entries(drag.orig)) { const n = N(id); if (n) { n.x = Math.round(o.x + dx); n.y = Math.round(o.y + dy); } }
+    for (const { arr, orig } of drag.vorig) orig.forEach((v, i) => { arr[i] = { x: Math.round(v.x + dx), y: Math.round(v.y + dy) }; });
+    renderCanvas();
+  } else if (drag.type === 'bend') {
+    if (Math.hypot(p.x - drag.start.x, p.y - drag.start.y) * view.k < 4) return;
+    const r = routes[drag.owner + '|' + drag.seg];
+    if (!r) { drag = null; return; }
+    const i = nearestSegment(r.pts, drag.start);
+    getVerts(drag.owner, drag.seg, true).splice(i, 0, { x: Math.round(p.x), y: Math.round(p.y) });
+    drag = { type: 'vertex', owner: drag.owner, seg: drag.seg, idx: i, pre: drag.pre, moved: true, start: drag.start };
+    renderCanvas();
+  } else if (drag.type === 'vertex') {
+    if (!drag.moved && Math.hypot(p.x - drag.start.x, p.y - drag.start.y) * view.k < 3) return;
+    drag.moved = true;
+    const verts = getVerts(drag.owner, drag.seg);
+    if (verts && verts[drag.idx]) verts[drag.idx] = snapVertex(drag.owner, drag.seg, drag.idx, p, e.altKey);
+    renderCanvas();
+  } else if (drag.type === 'reconnect') {
+    hoverCand = candidateAt(p);
+    hoverValid = hoverCand ? !reconnectError(drag.owner, drag.end, hoverCand) : true;
+    renderCanvas();
+  } else if (drag.type === 'box') {
+    drag.cur = p; renderCanvas();
+  }
+});
+
+window.addEventListener('mouseup', e => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  document.getElementById('canvasWrap').classList.remove('panning');
+  if (d.type === 'pan') {
+    if (!d.moved) { selection.clear(); render(); }
+  } else if (d.type === 'move') {
+    if (d.moved) {
+      // an orphan element dropped inside an expanded actor joins that actor
+      computeGeom();
+      const adopted = [];
+      for (const id of Object.keys(d.orig)) {
+        const n = N(id);
+        if (n && n.kind === 'element' && !n.parent) {
+          const g = geom[id]; const aid = g && actorBoundaryAt({ x: g.cx, y: g.cy });
+          if (aid) { n.parent = aid; adopted.push(N(aid).text); }
+        }
+      }
+      if (adopted.length) toast(`Moved into ${adopted[0]}`);
+      pushUndo(d.pre); save();
+    }
+    render();
+  } else if (d.type === 'vertex') {
+    if (d.moved) { pushUndo(d.pre); save(); }
+    render();
+  } else if (d.type === 'bend') {
+    render();
+  } else if (d.type === 'reconnect') {
+    const cand = candidateAt(toWorld(e));
+    hoverCand = null;
+    if (cand) {
+      const err = reconnectError(d.owner, d.end, cand);
+      if (err) toast(err, true);
+      else {
+        const dn = N(d.owner);
+        const before = dn ? dn[d.end] : state.links[d.owner][d.end];
+        if (before !== cand) {
+          mutate(() => { if (dn) dn[d.end] = cand; else state.links[d.owner][d.end] = cand; });
+          toast(`Reconnected to ${displayName(cand)}`);
+        }
+      }
+    }
+    render();
+  } else if (d.type === 'box') {
+    const r = normRect(d.start, d.cur);
+    if (r.w > 3 || r.h > 3) {
+      for (const [id, g] of Object.entries(geom)) if (g.x >= r.x && g.y >= r.y && g.x + g.w <= r.x + r.w && g.y + g.h <= r.y + r.h) selection.add(id);
+    }
+    render();
+  }
+});
+
+let lastDown = null;
+function dblKey(t) {
+  if (t.closest('[data-toggle]') || t.closest('[data-handle]')) return null;
+  const vh = t.closest('[data-vidx]');
+  if (vh) return `v|${vh.dataset.vowner}|${vh.dataset.vseg}|${vh.dataset.vidx}`;
+  const n = t.closest('[data-id]');
+  if (n) return `n|${n.dataset.id}|${n.dataset.part || ''}`;
+  return null;
+}
+function handleDoubleClick(t) {
+  const vh = t.closest('[data-vidx]');
+  if (vh) {
+    const { vowner, vseg, vidx } = vh.dataset;
+    mutate(() => { const v = getVerts(vowner, vseg); if (v) v.splice(+vidx, 1); });
+    return;
+  }
+  const n = t.closest('[data-id]');
+  if (!n) return;
+  if (n.dataset.part === 'boundary') { const id = n.dataset.id; mutate(() => { N(id).collapsed = true; }); return; }
+  editText(n.dataset.id);
+}
+
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = svg.getBoundingClientRect();
+  zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)));
+}, { passive: false });
+svg.addEventListener('contextmenu', e => e.preventDefault());
+
+function zoomAt(sx, sy, factor) {
+  if (editing) commitEditor();
+  const k = Math.min(4, Math.max(0.15, view.k * factor));
+  const wx = (sx - view.x) / view.k, wy = (sy - view.y) / view.k;
+  view.k = k; view.x = sx - wx * k; view.y = sy - wy * k;
+  applyView();
+}
+function zoomCenter(f) { const r = svg.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, f); }
+function fit() {
+  computeGeom();
+  const bb = sceneBBox(), r = svg.getBoundingClientRect();
+  if (!bb || !r.width) { view = { x: 40, y: 40, k: 1 }; applyView(); return; }
+  const pad = 40;
+  const k = Math.min(1.5, Math.max(0.2, Math.min((r.width - 2 * pad) / bb.w, (r.height - 2 * pad) / bb.h)));
+  view.k = k; view.x = (r.width - bb.w * k) / 2 - bb.x * k; view.y = (r.height - bb.h * k) / 2 - bb.y * k;
+  applyView();
+}
+
+/* =====================================================================
+   Keyboard
+   ===================================================================== */
+window.addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase();
+  const typing = tag === 'input' || tag === 'textarea' || tag === 'select';
+  const ctrl = e.ctrlKey || e.metaKey;
+  const k = e.key.toLowerCase();
+  if (ctrl && k === 's') { e.preventDefault(); exportJSON(); return; }
+  if (ctrl && k === 'o') { e.preventDefault(); document.getElementById('fileInput').click(); return; }
+  if (typing) return;
+  if (ctrl && k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+  if (ctrl && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
+  if (ctrl && k === 'a') { e.preventDefault(); selection = new Set(Object.keys(geom).filter(id => N(id))); render(); return; }
+  if (ctrl && k === 'c') { e.preventDefault(); copySelection(); return; }
+  if (ctrl && k === 'v') { e.preventDefault(); pasteClipboard(); return; }
+  if (ctrl && k === 'd') { e.preventDefault(); copySelection(); pasteClipboard(); return; }
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelection(); return; }
+  if (e.key === 'Escape') {
+    if (drag && drag.type === 'reconnect') { drag = null; hoverCand = null; render(); return; }
+    if (linkSrc) { linkSrc = null; render(); return; }
+    if (mode.kind) { setTool('select'); return; }
+    selection.clear(); render(); return;
+  }
+  if ((e.key === 'F2' || e.key === 'Enter') && selection.size === 1) {
+    const id = [...selection][0]; if (N(id)) { e.preventDefault(); editText(id); } return;
+  }
+  if (e.key.startsWith('Arrow') && selection.size) {
+    e.preventDefault();
+    const s = e.shiftKey ? 10 : 1;
+    const dx = e.key === 'ArrowLeft' ? -s : e.key === 'ArrowRight' ? s : 0;
+    const dy = e.key === 'ArrowUp' ? -s : e.key === 'ArrowDown' ? s : 0;
+    mutate(() => {
+      const ids = new Set();
+      selection.forEach(id => { const n = N(id); if (!n) return; ids.add(id); if (n.kind === 'actor') kidsOf(id).forEach(c => ids.add(c.id)); });
+      ids.forEach(id => { N(id).x += dx; N(id).y += dy; });
+      vertexArraysFor(ids).forEach(arr => arr.forEach(v => { v.x += dx; v.y += dy; }));
+    });
+    return;
+  }
+  if (e.key === ' ') { spaceDown = true; e.preventDefault(); return; }
+  if (ctrl || e.altKey) return;
+  const map = { v: 'select', a: 'add-actor', g: 'add-goal', t: 'add-task', r: 'add-resource', q: 'add-quality', d: 'dep-goal' };
+  if (map[k]) setTool(map[k]);
+});
+window.addEventListener('keyup', e => { if (e.key === ' ') spaceDown = false; });
+
+/* =====================================================================
+   piStar import / export
+   ===================================================================== */
+function fromPistar(j) {
+  if (typeof j === 'string') j = JSON.parse(j);
+  if (!j || typeof j !== 'object' || (!j.actors && !j.dependencies && !j.orphans)) throw new Error('This does not look like a piStar model.');
+  const st = emptyState();
+  const diag = j.diagram || {};
+  st.name = diag.name || 'Imported model';
+  st.description = (diag.customProperties && diag.customProperties.Description) || '';
+  st.diagramProps = { ...(diag.customProperties || {}) }; delete st.diagramProps.Description;
+  const disp = j.display || {};
+  const el = (o, kind, parent) => ({
+    id: o.id || uid(), kind, type: o.type, text: o.text || '', x: +o.x || 0, y: +o.y || 0,
+    props: { Description: '', ...(o.customProperties || {}) }, parent: parent || null,
+  });
+  for (const a of j.actors || []) {
+    const n = el(a, 'actor'); n.collapsed = !!(disp[a.id] && disp[a.id].collapsed); delete n.parent;
+    st.nodes[n.id] = n;
+    for (const c of a.nodes || []) st.nodes[c.id] = el(c, 'element', n.id);
+  }
+  for (const o of j.orphans || []) {
+    if (ACTOR_TYPES.includes(o.type)) { const n = el(o, 'actor'); n.collapsed = !!(disp[o.id] && disp[o.id].collapsed); delete n.parent; st.nodes[n.id] = n; }
+    else st.nodes[o.id] = el(o, 'element', null);
+  }
+  for (const d of j.dependencies || []) {
+    const n = el(d, 'dependum'); delete n.parent;
+    n.source = d.source || null; n.target = d.target || null;
+    st.nodes[n.id] = n;
+  }
+  for (const l of j.links || []) {
+    if (l.type === 'istar.DependencyLink') {
+      const s = st.nodes[l.source], t = st.nodes[l.target];
+      if (t && t.kind === 'dependum') { t.linkIn = l.id; if (!t.source) t.source = l.source; }
+      else if (s && s.kind === 'dependum') { s.linkOut = l.id; if (!s.target) s.target = l.target; }
+      continue;
+    }
+    if (!st.nodes[l.source] || !st.nodes[l.target]) continue;
+    const lid = l.id || uid();
+    st.links[lid] = { id: lid, type: l.type, source: l.source, target: l.target, ...(l.label ? { label: l.label } : {}) };
+    const vs = readVerts(disp[lid]); if (vs) st.links[lid].vertices = vs;
+  }
+  for (const n of Object.values(st.nodes)) if (n.kind === 'dependum') {
+    n.linkIn = n.linkIn || uid(); n.linkOut = n.linkOut || uid();
+    const vi = readVerts(disp[n.linkIn]), vo = readVerts(disp[n.linkOut]);
+    if (vi) n.vIn = vi; if (vo) n.vOut = vo;
+  }
+  return st;
+}
+
+function readVerts(entry) {
+  if (!entry || !Array.isArray(entry.vertices) || !entry.vertices.length) return null;
+  return entry.vertices.map(v => ({ x: +v.x || 0, y: +v.y || 0 }));
+}
+function toPistar() {
+  computeGeom();
+  const out = { actors: [], orphans: [], dependencies: [], links: [], display: {}, tool: 'pistar.2.1.0', istar: '2.0', saveDate: new Date().toUTCString() };
+  const base = n => ({ id: n.id, text: n.text, type: n.type, x: Math.round(n.x), y: Math.round(n.y), customProperties: { ...(n.props || { Description: '' }) } });
+  for (const n of nodesArr()) {
+    if (n.kind === 'actor') {
+      out.actors.push({ ...base(n), nodes: kidsOf(n.id).map(base) });
+      if (n.collapsed) out.display[n.id] = { collapsed: true };
+    } else if (n.kind === 'element' && !n.parent) out.orphans.push(base(n));
+    else if (n.kind === 'dependum') {
+      out.dependencies.push({ ...base(n), source: n.source, target: n.target });
+      const inId = n.linkIn || uid(), outId = n.linkOut || uid();
+      out.links.push({ id: inId, type: 'istar.DependencyLink', source: n.source, target: n.id });
+      out.links.push({ id: outId, type: 'istar.DependencyLink', source: n.id, target: n.target });
+      if (n.vIn && n.vIn.length) out.display[inId] = { vertices: n.vIn.map(v => ({ x: Math.round(v.x), y: Math.round(v.y) })) };
+      if (n.vOut && n.vOut.length) out.display[outId] = { vertices: n.vOut.map(v => ({ x: Math.round(v.x), y: Math.round(v.y) })) };
+    }
+  }
+  for (const l of Object.values(state.links)) {
+    const o = { id: l.id, type: l.type, source: l.source, target: l.target };
+    if (l.type === 'istar.ContributionLink') o.label = l.label || 'help';
+    out.links.push(o);
+    if (l.vertices && l.vertices.length) out.display[l.id] = { vertices: l.vertices.map(v => ({ x: Math.round(v.x), y: Math.round(v.y) })) };
+  }
+  const bb = sceneBBox();
+  out.diagram = {
+    width: Math.max(1000, Math.round(bb ? bb.x + bb.w + 100 : 1000)),
+    height: Math.max(700, Math.round(bb ? bb.y + bb.h + 100 : 700)),
+    name: state.name, customProperties: { ...(state.diagramProps || {}), Description: state.description || '' },
+  };
+  return out;
+}
+
+function loadModel(st, msg) {
+  commitEditor();
+  const before = snapshot();
+  state = st; selection.clear(); linkSrc = null;
+  pushUndo(before); save();
+  render(); fit();
+  if (msg) toast(msg);
+}
+function importText(text, label) {
+  try { loadModel(fromPistar(text), `Loaded ${label || 'model'} (Ctrl+Z to go back)`); }
+  catch (err) { toast('Could not import: ' + err.message, true); }
+}
+
+function download(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const safeName = () => (state.name || 'istar-model').replace(/[\\/:*?"<>|]+/g, '_').trim() || 'istar-model';
+function exportJSON() {
+  download(new Blob([JSON.stringify(toPistar(), null, 2)], { type: 'text/plain' }), safeName() + '.txt');
+  toast('Saved — this file also opens in piStar');
+}
+function buildExportSVG() {
+  computeGeom();
+  const bb = sceneBBox() || { x: 0, y: 0, w: 200, h: 100 };
+  const pad = 30, x = bb.x - pad, y = bb.y - pad, w = Math.ceil(bb.w + 2 * pad), h = Math.ceil(bb.h + 2 * pad);
+  const text = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${x} ${y} ${w} ${h}"><defs><style>${STYLE}</style>${MARKERS}</defs><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff"/>${buildScene(true)}</svg>`;
+  return { text, w, h };
+}
+function exportSVG() { download(new Blob([buildExportSVG().text], { type: 'image/svg+xml' }), safeName() + '.svg'); }
+function exportPNG() {
+  const { text, w, h } = buildExportSVG();
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas'); const s = 2;
+    c.width = w * s; c.height = h * s;
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    c.toBlob(b => b ? download(b, safeName() + '.png') : toast('PNG export failed', true));
+  };
+  img.onerror = () => toast('PNG export failed — try SVG', true);
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(text);
+}
+
+/* =====================================================================
+   Example model (the SD diagram you shared)
+   ===================================================================== */
+const EXAMPLE = {"actors":[{"id":"4028f1fa-4e12-4822-9277-56823f3375d5","text":"Customer","type":"istar.Actor","x":96,"y":250,"customProperties":{"Description":""},"nodes":[]},{"id":"4375bca3-837b-4129-985e-1b8e3838dfde","text":"BFRN platform","type":"istar.Actor","x":488,"y":273,"customProperties":{"Description":""},"nodes":[{"id":"50629632-76fd-422a-af26-5b88be807226","text":"Check stock","type":"istar.Task","x":699,"y":385,"customProperties":{"Description":""}},{"id":"3dd87707-414d-4bdd-9caf-fe5f0481c879","text":"In stock","type":"istar.Task","x":625,"y":322,"customProperties":{"Description":""}}]},{"id":"831325af-54b6-401c-9696-57cf5074e460","text":"Producer","type":"istar.Actor","x":919,"y":262,"customProperties":{"Description":""},"nodes":[{"id":"e9c61119-e439-4dd7-a72b-6f555ca92d82","text":"Stock info","type":"istar.Resource","x":999,"y":320,"customProperties":{"Description":""}}]},{"id":"e57d9c30-a6ff-4c9a-88a6-4df165540c60","text":"Payment provider","type":"istar.Actor","x":486,"y":578,"customProperties":{"Description":""},"nodes":[]}],"orphans":[],"dependencies":[{"id":"6540dc98-43bb-4b3f-a47d-e1d838a2f3e5","text":"Safe checkout","type":"istar.Quality","x":253,"y":162,"customProperties":{"Description":""},"source":"4028f1fa-4e12-4822-9277-56823f3375d5","target":"4375bca3-837b-4129-985e-1b8e3838dfde"},{"id":"8b7a5c13-8b15-44a7-a982-a07f77f160da","text":"Prepare and pack order","type":"istar.Task","x":704,"y":232,"customProperties":{"Description":""},"source":"4375bca3-837b-4129-985e-1b8e3838dfde","target":"831325af-54b6-401c-9696-57cf5074e460"},{"id":"409177a1-acce-49fa-be66-689c03a3a1d5","text":"Payment information","type":"istar.Resource","x":69,"y":581,"customProperties":{"Description":""},"source":"e57d9c30-a6ff-4c9a-88a6-4df165540c60","target":"4028f1fa-4e12-4822-9277-56823f3375d5"},{"id":"61ad0dba-4a02-4c5d-8049-46aa37ff9780","text":"Product catalogue","type":"istar.Resource","x":254,"y":120,"customProperties":{"Description":""},"source":"4028f1fa-4e12-4822-9277-56823f3375d5","target":"4375bca3-837b-4129-985e-1b8e3838dfde"},{"id":"3860e853-ea08-472f-b6f1-1b894aa339e3","text":"Order placed","type":"istar.Goal","x":261,"y":233,"customProperties":{"Description":""},"source":"4028f1fa-4e12-4822-9277-56823f3375d5","target":"4375bca3-837b-4129-985e-1b8e3838dfde"},{"id":"ce100c59-43f9-4605-9d61-0774b40aefca","text":"Order status","type":"istar.Resource","x":255,"y":285,"customProperties":{"Description":""},"source":"4028f1fa-4e12-4822-9277-56823f3375d5","target":"4375bca3-837b-4129-985e-1b8e3838dfde"},{"id":"f97ced7e-0be2-46be-9385-5e50d9cda2f8","text":"Delivery and order details","type":"istar.Resource","x":240,"y":339,"customProperties":{"Description":""},"source":"4375bca3-837b-4129-985e-1b8e3838dfde","target":"4028f1fa-4e12-4822-9277-56823f3375d5"},{"id":"8920f65a-6924-4de4-8339-1a81197cf257","text":"Product data","type":"istar.Resource","x":703,"y":185,"customProperties":{"Description":""},"source":"4375bca3-837b-4129-985e-1b8e3838dfde","target":"831325af-54b6-401c-9696-57cf5074e460"},{"id":"22452655-f0da-458b-8968-f312e239dba3","text":"Less manual admin","type":"istar.Quality","x":710,"y":334,"customProperties":{"Description":""},"source":"831325af-54b6-401c-9696-57cf5074e460","target":"4375bca3-837b-4129-985e-1b8e3838dfde"},{"id":"885b9492-1216-44b9-befb-b684dca25e06","text":"Payment and payout requests","type":"istar.Resource","x":443,"y":435,"customProperties":{"Description":""},"source":"e57d9c30-a6ff-4c9a-88a6-4df165540c60","target":"4375bca3-837b-4129-985e-1b8e3838dfde"},{"id":"e74a8f1c-122f-44fd-944c-2735c2604858","text":"Transaction confirmation","type":"istar.Resource","x":342,"y":431,"customProperties":{"Description":""},"source":"4375bca3-837b-4129-985e-1b8e3838dfde","target":"e57d9c30-a6ff-4c9a-88a6-4df165540c60"},{"id":"c2f8ff8f-af0d-4243-af1b-3ae633b92f3e","text":"Execute weekly payouts","type":"istar.Task","x":545,"y":439,"customProperties":{"Description":""},"source":"4375bca3-837b-4129-985e-1b8e3838dfde","target":"e57d9c30-a6ff-4c9a-88a6-4df165540c60"},{"id":"b11475f7-2718-4651-b244-e8f62856c7d0","text":"Secure payments","type":"istar.Quality","x":652,"y":427,"customProperties":{"Description":""},"source":"4375bca3-837b-4129-985e-1b8e3838dfde","target":"e57d9c30-a6ff-4c9a-88a6-4df165540c60"},{"id":"22295385-999d-44c0-b870-54bfa28773dd","text":"Process payment","type":"istar.Task","x":243,"y":436,"customProperties":{"Description":""},"source":"4375bca3-837b-4129-985e-1b8e3838dfde","target":"e57d9c30-a6ff-4c9a-88a6-4df165540c60"},{"id":"7666cfc8-42cc-43b4-971c-c5f516006498","text":"Weekly payout received","type":"istar.Goal","x":700,"y":139,"customProperties":{"Description":""},"source":"831325af-54b6-401c-9696-57cf5074e460","target":"4375bca3-837b-4129-985e-1b8e3838dfde"},{"id":"a40383f1-d2b1-4341-8dcf-68322c48840c","text":"Update order status","type":"istar.Task","x":710,"y":286,"customProperties":{"Description":""},"source":"4375bca3-837b-4129-985e-1b8e3838dfde","target":"831325af-54b6-401c-9696-57cf5074e460"},{"id":"fef91584-ac3b-408c-a5a3-dca883cd064f","text":"Listing published","type":"istar.Goal","x":697,"y":91,"customProperties":{"Description":""},"source":"831325af-54b6-401c-9696-57cf5074e460","target":"4375bca3-837b-4129-985e-1b8e3838dfde"},{"id":"6855cd84-5144-4fe4-a772-401b0139392d","text":"Produce received","type":"istar.Goal","x":481,"y":25,"customProperties":{"Description":""},"source":"4028f1fa-4e12-4822-9277-56823f3375d5","target":"831325af-54b6-401c-9696-57cf5074e460"}],"links":[{"id":"1cbb9467-1392-4f61-806f-438ec216eb68","type":"istar.DependencyLink","source":"6855cd84-5144-4fe4-a772-401b0139392d","target":"831325af-54b6-401c-9696-57cf5074e460"},{"id":"2872266e-d551-44ed-b4d0-6156d61fe05b","type":"istar.DependencyLink","source":"4028f1fa-4e12-4822-9277-56823f3375d5","target":"6855cd84-5144-4fe4-a772-401b0139392d"},{"id":"7e709136-86af-42e1-9425-ac4001e4dacb","type":"istar.OrRefinementLink","source":"50629632-76fd-422a-af26-5b88be807226","target":"3dd87707-414d-4bdd-9caf-fe5f0481c879"}],"display":{"1cbb9467-1392-4f61-806f-438ec216eb68":{"vertices":[{"x":853,"y":72}]},"2872266e-d551-44ed-b4d0-6156d61fe05b":{"vertices":[{"x":190,"y":75}]},"4028f1fa-4e12-4822-9277-56823f3375d5":{"collapsed":true},"4375bca3-837b-4129-985e-1b8e3838dfde":{"collapsed":true},"831325af-54b6-401c-9696-57cf5074e460":{"collapsed":true},"e57d9c30-a6ff-4c9a-88a6-4df165540c60":{"collapsed":true}},"tool":"pistar.2.1.0","istar":"2.0","diagram":{"width":1082,"height":700,"name":"SD Diagram","customProperties":{"Description":""}}};
+
+/* =====================================================================
+   Wiring
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+$('btnNew').onclick = () => { loadModel(emptyState(), 'New diagram (Ctrl+Z to go back)'); view = { x: 40, y: 40, k: 1 }; applyView(); };
+$('btnOpen').onclick = () => $('fileInput').click();
+$('fileInput').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => importText(r.result, f.name);
+  r.readAsText(f); e.target.value = '';
+};
+$('btnPaste').onclick = () => { $('pasteText').value = ''; $('pasteDialog').showModal(); };
+$('pasteCancel').onclick = () => $('pasteDialog').close();
+$('pasteOk').onclick = () => { $('pasteDialog').close(); importText($('pasteText').value, 'pasted model'); };
+$('btnExample').onclick = () => loadModel(fromPistar(EXAMPLE), 'Loaded example (Ctrl+Z to go back)');
+$('btnSave').onclick = exportJSON;
+$('btnSvg').onclick = exportSVG;
+$('btnPng').onclick = exportPNG;
+$('btnUndo').onclick = undo;
+$('btnRedo').onclick = redo;
+$('btnExpandAll').onclick = () => setAllCollapsed(false);
+$('btnCollapseAll').onclick = () => setAllCollapsed(true);
+$('btnZoomIn').onclick = () => zoomCenter(1.2);
+$('btnZoomOut').onclick = () => zoomCenter(1 / 1.2);
+$('btnZoomReset').onclick = () => { const r = svg.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1 / view.k); };
+$('btnFit').onclick = fit;
+bindText($('diagramName'), () => state.name, v => { state.name = v; });
+
+// drag & drop a piStar file onto the page
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = () => importText(r.result, f.name); r.readAsText(f);
+});
+
+buildTools();
+(function init() {
+  let loaded = false;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) { const s = JSON.parse(saved); if (s && s.nodes) { state = s; loaded = true; } }
+  } catch (e) {}
+  if (!loaded) state = fromPistar(EXAMPLE);
+  setTool('select');
+  requestAnimationFrame(fit);
+})();
+window.addEventListener('resize', () => applyView());
+</script>
+</body>
+</html>
